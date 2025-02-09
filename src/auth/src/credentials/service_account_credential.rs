@@ -129,10 +129,11 @@ impl TokenProvider for ServiceAccountTokenProvider {
 impl ServiceAccountTokenProvider {
     // Creates a signer using the private key stored in the service account file.
     fn signer(&self, private_key: &String) -> Result<Box<dyn Signer>> {
-        let key_provider = CryptoProvider::get_default().map_or_else(
-            || rustls::crypto::aws_lc_rs::default_provider().key_provider,
-            |p| p.key_provider,
-        );
+        let key_provider = CryptoProvider::get_default()
+            .map(|p| p.key_provider)
+            .ok_or(CredentialError::non_retryable(
+                "No default crypto provider found",
+            ))?;
 
         let private_key = rustls_pemfile::read_one(&mut private_key.as_bytes())
             .map_err(CredentialError::non_retryable)?
